@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+from OMG import lib_omg as lomg
+import numpy as np
+
+nwa_gridfile='/Volumes/P1/ROMS-Inputs/NWA/Grid/NWA_grd.nc'
+nwa_datadir = '/Volumes/P5/ROMS/NWA/run60/1958/'
+
+plotdir='/Volumes/P4/workdir/raphael/anims/'
+
+listfiles = []
+for nn in np.arange(100,110):
+	listfiles.append(nwa_datadir + 'nwa_avg_' + str(nn).zfill(5) + '.nc')
+
+nwa = lomg.gearth_anim(nwa_gridfile,plotdir)
+nwa.create_animation(listfiles,'nwa_velocities.kmz',showing='velocity_module')
+nwa.create_animation(listfiles,'nwa_sst.kmz',showing='sst')
