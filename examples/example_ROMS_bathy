@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+
+from OMG import lib_omg as lomg
+import numpy as np
+
+roms_gridfile='/t3/workdir/liz/MODELS/VIP/Inputs/Grid/VIP_grd_high_res_bathy_interp2.nc'
+roms_datadir = '/t3/workdir/liz/MODELS/VIP/Inputs/Grid/'
+
+plotdir='/t3/workdir/raphael/anims/'
+
+listfiles = []
+for nn in np.arange(0,2):
+	listfiles.append(roms_datadir + 'VIP_grd_high_res_bathy_interp2.nc' )
+
+roms = lomg.gearth_anim(roms_gridfile,plotdir,model='ROMS')
+roms.create_animation(listfiles,'bathy_VIP.kmz',showing='bathy_roms')
+
+roms_gridfile='/t3/workdir/liz/MODELS/MAPHIL/Inputs/Grid/MaPhil_grd_high_res_bathy.nc'
+roms_datadir = '/t3/workdir/liz/MODELS/MAPHIL/Inputs/Grid/'
+
+plotdir='/t3/workdir/raphael/anims/'
+
+listfiles = []
+for nn in np.arange(0,2):
+        listfiles.append(roms_datadir + 'MaPhil_grd_high_res_bathy.nc' )
+
+roms = lomg.gearth_anim(roms_gridfile,plotdir,model='ROMS')
+roms.create_animation(listfiles,'bathy_MAPHIL.kmz',showing='bathy_roms')

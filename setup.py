@@ -1,5 +1,9 @@
 import os
-from numpy.distutils.core import setup
+from numpy.distutils.core import setup, Extension
+
+utils    = Extension(name = 'OMG.utils',
+                             sources = ['OMG/f90/utils.f90'])
+
 
 setup(
     name = "OMG",
@@ -10,7 +14,8 @@ setup(
     license = "GPLv3",
     keywords = "ocean modeling, visualization",
     url = "",
-    packages=['OMG'] 
+    packages=['OMG'], 
+    ext_modules = [utils]
 )
 
 

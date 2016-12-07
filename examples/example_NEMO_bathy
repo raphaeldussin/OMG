@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+
+from OMG import lib_omg as lomg
+import numpy as np
+
+nemo_gridfile='/t3/workdir/raphael/ORCA025L75-I/ORCA025.L75-MJM101.1_byte_mask.nc'
+nemo_datadir = '/t3/workdir/raphael/ORCA025L75-I/'
+
+plotdir='/t3/workdir/raphael/anims/'
+
+listfiles = []
+for nn in np.arange(0,2):
+	listfiles.append(nemo_datadir + 'ORCA025.L75-MJM101.1_mesh_zgr.nc' )
+
+nemo = lomg.gearth_anim(nemo_gridfile,plotdir,model='NEMO')
+nemo.create_animation(listfiles,'bathy.kmz',showing='bathy_nemo')

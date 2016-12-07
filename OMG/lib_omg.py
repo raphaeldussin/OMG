@@ -1,5 +1,7 @@
+import OMG.utils as lu
 import netCDF4 as nc
 import numpy as np
+import numpy.ma as ma
 import matplotlib.pyplot as plt
 import datetime as dt
 import matplotlib.cm as cm
@@ -8,16 +10,23 @@ from simplekml import (Kml, OverlayXY, ScreenXY, Units, RotationXY,
 
 class gearth_anim():
 
-	def __init__(self,gridfile,plotdir):
+	def __init__(self,gridfile,plotdir,model='ROMS'):
 		self.gridfile = gridfile
 		self.reference = dt.datetime(1900,1,1,0,0)
 		self.maxdigit=6
 		self.dpi = 600
 		self.figure_size = 8 # *100 pixels
 		self.plotdir = plotdir
+		self.model = model
+		if self.model == 'ROMS':
+			self.read_coords()
+			self.timevar = 'ocean_time'
+		elif self.model == 'NEMO':
+			self.read_coords(lonvar='nav_lon',latvar='nav_lat')
+			self.timevar = 'time_counter'
+			self.spval = 0.
 
 	def create_animation(self,listfiles,output,showing='velocity_module'):
-		self.read_coords()
 		times = [] ; frame_list = [] ; ct=1
 		for file in listfiles:
 			print 'working on file ', file
@@ -25,17 +34,34 @@ class gearth_anim():
 			current_png = self.plotdir + 'output_' + str(ct).zfill(self.maxdigit) + '.png'
 			frame_list.append(current_png)
 			# read time
-			times.append(self.read_time(file))
+			try:
+				times.append(self.read_time(file))
+			except:
+				times.append(self.reference)
 			# compute data in subroutine
 			if showing == 'velocity_module':
 				data = self.velocity_module(file)
 			elif showing == 'sst':
 				data = self.sst(file)
+			elif showing == 'bathy_nemo':
+				data = self.bathy_nemo(file)
+			elif showing == 'bathy_roms':
+				data = self.bathy_roms(file)
 			else:
 				exit('no such kind of animation')
+
+			if self.model == 'NEMO':
+				# we need to sort longitude to be monotonic
+				lonmono, latmono, datamono = lu.sort_monotonic(self.lon, self.lat, data)
+				# remove the northfold
+				lonplt = lonmono[:-1,:] ; latplt = latmono[:-1,:] ; dataplt = datamono[:-1,:]
+				dataplt = np.ma.masked_values(dataplt,self.spval)	
+			else:
+				 lonplt = self.lon ; latplt = self.lat ; dataplt = data
+
 			# make the plot
 			fig, ax = self.gearth_fig()
-			cs = ax.pcolormesh(self.lon, self.lat, data, cmap=self.colormap,vmin=self.vmin,vmax=self.vmax)
+			cs = ax.pcolormesh(lonplt, latplt, dataplt, cmap=self.colormap,vmin=self.vmin,vmax=self.vmax)
 			ax.set_axis_off()
 			fig.savefig(current_png, transparent=True, format='png')
 			plt.close(fig)
@@ -62,6 +88,26 @@ class gearth_anim():
 		self.colormap = cm.gist_ncar
 		return data
 
+	def bathy_nemo(self,file):
+		data = self.read_data(file,'hdept',level=None,time=None)
+		# plot parameters
+		self.vmin = 0. ; self.vmax = 5800.
+		self.colormap = cm.jet
+		self.spval = data.min() # ugly but works
+		return data
+
+	def bathy_roms(self,file):
+		data = self.read_data(file,'h',level=None,time=None)
+		mask = self.read_data(self.gridfile,'mask_rho',level=None,time=None)
+		logicalmask = np.empty(mask.shape)
+		logicalmask[:] = False
+		logicalmask[np.where(mask == 0)] = True
+		data_mask = ma.masked_array(data,mask=logicalmask)
+		# plot parameters
+		self.vmin = 0. ; self.vmax = 1000.
+		self.colormap = cm.jet
+		return data_mask
+
 	def read_coords(self,lonvar='lon_rho',latvar='lat_rho'):
 		nc_grd = nc.Dataset(self.gridfile,'r')
 		self.lat = nc_grd.variables[latvar][:]
@@ -73,15 +119,24 @@ class gearth_anim():
 		self.urcrnrlat=self.lat.max()
 		return None
 
-	def read_data(self,datafile,datavar,level=-1):
+	def read_data(self,datafile,datavar,level=-1,time=0):
 		nc_data = nc.Dataset(datafile,'r')
-		data = nc_data.variables[datavar][0,level,:,:].squeeze()
+		if time is None:
+			if level is None:
+				data = nc_data.variables[datavar][:].squeeze()
+			else:
+				data = nc_data.variables[datavar][level,:].squeeze()
+		else:
+			if level is None:
+				data = nc_data.variables[datavar][time,:,:].squeeze()
+			else:
+				data = nc_data.variables[datavar][time,level,:,:].squeeze()
 		nc_data.close()
 		return data
 
-	def read_time(self,datafile,timevar='ocean_time',ref=None):
+	def read_time(self,datafile,ref=None):
 		nc_data = nc.Dataset(datafile,'r')
-		seconds_from_ref = nc_data.variables[timevar][0]
+		seconds_from_ref = nc_data.variables[self.timevar][0]
 		nc_data.close()
 		if ref is None:
 			ref = self.reference
