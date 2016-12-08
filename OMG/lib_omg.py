@@ -21,13 +21,19 @@ class gearth_anim():
 		if self.model == 'ROMS':
 			self.read_coords()
 			self.timevar = 'ocean_time'
+			self.uvar = 'u' ; self.vvar = 'v'
+			self.temp = 'temp'
 		elif self.model == 'NEMO':
 			self.read_coords(lonvar='nav_lon',latvar='nav_lat')
+			self.logicalmask = self.create_mask_nemo()
 			self.timevar = 'time_counter'
-			self.spval = 0.
+			self.uvar = 'vozocrtx' ; self.vvar = 'vomecrty'
+			self.temp = 'votemper'
 
-	def create_animation(self,listfiles,output,showing='velocity_module'):
+	def create_animation(self,listfiles,output,showing='velocity_roms',spval=None):
 		times = [] ; frame_list = [] ; ct=1
+		if spval is not None:
+			self.spval = spval
 		for file in listfiles:
 			print 'working on file ', file
 			# define png output
@@ -39,10 +45,14 @@ class gearth_anim():
 			except:
 				times.append(self.reference)
 			# compute data in subroutine
-			if showing == 'velocity_module':
-				data = self.velocity_module(file)
-			elif showing == 'sst':
-				data = self.sst(file)
+			if showing == 'velocity_roms':
+				data = self.velocity_roms(file)
+			elif showing == 'velocity_nemo':
+				data = self.velocity_nemo(file)
+			elif showing == 'sst_roms':
+				data = self.sst_roms(file)
+			elif showing == 'sst_nemo':
+				data = self.sst_nemo(file)
 			elif showing == 'bathy_nemo':
 				data = self.bathy_nemo(file)
 			elif showing == 'bathy_roms':
@@ -55,13 +65,15 @@ class gearth_anim():
 				lonmono, latmono, datamono = lu.sort_monotonic(self.lon, self.lat, data)
 				# remove the northfold
 				lonplt = lonmono[:-1,:] ; latplt = latmono[:-1,:] ; dataplt = datamono[:-1,:]
-				dataplt = np.ma.masked_values(dataplt,self.spval)	
+				dataplt = np.ma.masked_array(dataplt,mask=self.logicalmask)	
 			else:
 				 lonplt = self.lon ; latplt = self.lat ; dataplt = data
 
+			# TODO : add possibility to remove another spval here
 			# make the plot
 			fig, ax = self.gearth_fig()
-			cs = ax.pcolormesh(lonplt, latplt, dataplt, cmap=self.colormap,vmin=self.vmin,vmax=self.vmax)
+			cs = ax.pcolormesh(lonplt, latplt, dataplt, cmap=self.colormap, \
+			                   vmin=self.vmin,vmax=self.vmax)
 			ax.set_axis_off()
 			fig.savefig(current_png, transparent=True, format='png')
 			plt.close(fig)
@@ -70,19 +82,44 @@ class gearth_anim():
 		self.make_kml(times,frame_list,output)
 		return None
 
-	def velocity_module(self,file):
-		var_u = self.read_data(file,'u')
-		var_v = self.read_data(file,'v')
-		u = 0.5 * (var_u[1:,:] + var_u[:-1,:])
-		v = 0.5 * (var_v[:,1:] + var_v[:,:-1])
+	def velocity_roms(self,file):
+		var_u = self.read_data(file,self.uvar)
+		var_v = self.read_data(file,self.vvar)
+		u = np.zeros(self.lon.shape) ; v = np.zeros(self.lon.shape)
+		u[1:-1,1:-1] = 0.5 * (var_u[1:-1,1:] + var_u[1:-1,:-1])
+		v[1:-1,1:-1] = 0.5 * (var_v[1:,1:-1] + var_v[:-1,1:-1])
 		data = np.sqrt(u*u+v*v)
 		# plot parameters
 		self.vmin = 0. ; self.vmax = 2.
 		self.colormap = cm.Blues_r
 		return data
 
-	def sst(self,file):
+	def velocity_nemo(self,file):
+		var_u = self.read_data(file,self.uvar,level=0)
+		var_v = self.read_data(file.replace('gridU','gridV'),self.vvar,level=0)
+		# adapted from cdfvita
+		ua = np.zeros(var_u.shape) ; va = np.zeros(var_v.shape)
+		# half sum in i
+		ua[1:,1:] = 0.5 * (var_u[1:,1:] + var_u[1:,:-1])
+		# half sum in j
+		va[1:,1:] = 0.5 * (var_v[1:,1:] + var_v[:-1,1:])
+		ua[:,0] = ua[:,-2]
+		va[:,0] = va[:,-2]
+		data = np.sqrt(ua*ua+va*va)
+		# plot parameters
+		self.vmin = 0. ; self.vmax = 2.
+		self.colormap = cm.Blues_r
+		return data
+
+	def sst_roms(self,file):
 		data = self.read_data(file,'temp')
+		# plot parameters
+		self.vmin = -2. ; self.vmax = 35.
+		self.colormap = cm.gist_ncar
+		return data
+
+	def sst_nemo(self,file):
+		data = self.read_data(file,self.temp,level=0)
 		# plot parameters
 		self.vmin = -2. ; self.vmax = 35.
 		self.colormap = cm.gist_ncar
@@ -93,11 +130,11 @@ class gearth_anim():
 		# plot parameters
 		self.vmin = 0. ; self.vmax = 5800.
 		self.colormap = cm.jet
-		self.spval = data.min() # ugly but works
 		return data
 
 	def bathy_roms(self,file):
 		data = self.read_data(file,'h',level=None,time=None)
+		# if needed elsewhere, next 4 lines should go in a standalone function
 		mask = self.read_data(self.gridfile,'mask_rho',level=None,time=None)
 		logicalmask = np.empty(mask.shape)
 		logicalmask[:] = False
@@ -142,6 +179,17 @@ class gearth_anim():
 			ref = self.reference
 		time = ref + dt.timedelta(seconds=seconds_from_ref)
 		return time
+
+	def create_mask_nemo(self):
+		mask = self.read_data(self.gridfile,'tmask',level=0,time=None)
+		# we need to sort longitude to be monotonic
+		dummy1, dummy2, maskmono = lu.sort_monotonic(self.lon, self.lat, mask)
+		# remove the northfold
+		maskplt = maskmono[:-1,:]
+		logicalmask = np.empty(maskplt.shape)
+		logicalmask[:] = False
+		logicalmask[np.where(maskplt == 0)] = True
+		return logicalmask
 
 	def make_kml(self,times,figs,fileout,colorbar=None,debug=False,**kw): 
 		"""TODO: LatLon bbox, list of figs, optional colorbar figure,

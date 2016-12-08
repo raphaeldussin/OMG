@@ -13,5 +13,5 @@ for nn in np.arange(100,110):
 	listfiles.append(nwa_datadir + 'nwa_avg_' + str(nn).zfill(5) + '.nc')
 
 nwa = lomg.gearth_anim(nwa_gridfile,plotdir)
-nwa.create_animation(listfiles,'nwa_velocities.kmz',showing='velocity_module')
-nwa.create_animation(listfiles,'nwa_sst.kmz',showing='sst')
+nwa.create_animation(listfiles,'nwa_velocities.kmz',showing='velocity_roms')
+nwa.create_animation(listfiles,'nwa_sst.kmz',showing='sst_roms')

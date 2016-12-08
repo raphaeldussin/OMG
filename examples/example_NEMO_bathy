@@ -3,14 +3,13 @@
 from OMG import lib_omg as lomg
 import numpy as np
 
-nemo_gridfile='/t3/workdir/raphael/ORCA025L75-I/ORCA025.L75-MJM101.1_byte_mask.nc'
-nemo_datadir = '/t3/workdir/raphael/ORCA025L75-I/'
-
-plotdir='/t3/workdir/raphael/anims/'
+nemo_gridfile='/Volumes/P1/Data/GLORYS/data/GL2V1_mesh_mask_new.nc'
+nemo_datadir = '/Volumes/P1/Data/GLORYS/data/'
+plotdir='/Volumes/P4/workdir/raphael/anims/'
 
 listfiles = []
 for nn in np.arange(0,2):
-	listfiles.append(nemo_datadir + 'ORCA025.L75-MJM101.1_mesh_zgr.nc' )
+	listfiles.append(nemo_datadir + 'GL2V1_mesh_mask_new.nc' )
 
 nemo = lomg.gearth_anim(nemo_gridfile,plotdir,model='NEMO')
 nemo.create_animation(listfiles,'bathy.kmz',showing='bathy_nemo')

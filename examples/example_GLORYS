@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+
+from OMG import lib_omg as lomg
+import numpy as np
+import subprocess as sp
+
+def get_output(cmd):
+	''' cmd is the string we want to execute in the shell
+	and have the output'''
+	out = sp.check_output(cmd,shell=True).replace('\n',' ').split()
+	return out
+
+nemo_gridfile='/Volumes/P1/Data/GLORYS/data/GL2V1_mesh_mask_new.nc'
+nemo_datadir = '/Volumes/P1/Data/GLORYS/data/'
+plotdir='/Volumes/P4/workdir/raphael/anims/'
+nemo = lomg.gearth_anim(nemo_gridfile,plotdir,model='NEMO')
+
+yearbeg = 1993
+yearend = 1993
+
+# SST
+listfiles = []
+for year in np.arange(yearbeg,yearend+1):
+	gridTfiles = get_output('ls ' + nemo_datadir + str(year) + ' | grep gridT' )
+	for filet in gridTfiles:
+		listfiles.append(nemo_datadir + str(year) + '/' + filet  )
+
+nemo.create_animation(listfiles,'Glorys_SST.kmz',showing='sst_nemo')
+
+# Velocities
+listfiles = []
+for year in np.arange(yearbeg,yearend+1):
+	gridUfiles = get_output('ls ' + nemo_datadir + str(year) + ' | grep gridU' )
+	for fileu in gridUfiles:
+		listfiles.append(nemo_datadir + str(year) + '/' + fileu  )
+
+nemo.create_animation(listfiles,'Glorys_UMOD.kmz',showing='velocity_nemo')
