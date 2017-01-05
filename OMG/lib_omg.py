@@ -55,6 +55,8 @@ class gearth_anim():
 				data = self.bathy_nemo(file)
 			elif showing == 'bathy_roms':
 				data = self.bathy_roms(file)
+			elif showing == 'chl_roms':
+				data = self.chl_roms(file)
 			else:
 				exit('no such kind of animation')
 
@@ -143,6 +145,16 @@ class gearth_anim():
 		self.colormap = cm.jet
 		return data_mask
 
+	def chl_roms(self,file):
+		tmp = self.read_data(file,'chl')
+		tmp = np.ma.masked_values(tmp,0.)
+		data = np.log10(tmp)
+		# plot parameters
+		self.vmin = -1. ; self.vmax = 1.
+		self.colormap = cm.jet
+		return data
+
+	#--------------- core functions ---------------------------
 	def read_coords(self,lonvar='lon_rho',latvar='lat_rho'):
 		nc_grd = nc.Dataset(self.gridfile,'r')
 		self.lat = nc_grd.variables[latvar][:]

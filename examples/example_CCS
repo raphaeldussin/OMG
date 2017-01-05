@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+
+from OMG import lib_omg as lomg
+import numpy as np
+import subprocess as sp
+
+def get_output(cmd):
+        ''' cmd is the string we want to execute in the shell
+        and have the output'''
+        out = sp.check_output(cmd,shell=True).replace('\n',' ').split()
+        return out
+
+ccs_gridfile='/Volumes/P1/ROMS-Inputs/CCS1/grid/CCS_7k_0-360_fred_grd.nc'
+ccs_datadir = '/Volumes/P7/ROMS/CCS1/CCS1-RD.NVOcobalt22S/'
+
+plotdir='/Volumes/P4/workdir/raphael/anims/'
+
+yearbeg=2000
+yearend=2000
+
+listfiles = []
+for year in np.arange(yearbeg,yearend+1):
+        diafiles = get_output('ls ' + ccs_datadir + str(year) + ' | grep dia' )
+        for diafile in diafiles:
+                listfiles.append(ccs_datadir + str(year) + '/' + diafile  )
+
+ccs = lomg.gearth_anim(ccs_gridfile,plotdir)
+ccs.create_animation(listfiles,'ccs_chl_surf.kmz',showing='chl_roms')
