@@ -40,10 +40,8 @@ class gearth_anim():
 			current_png = self.plotdir + 'output_' + str(ct).zfill(self.maxdigit) + '.png'
 			frame_list.append(current_png)
 			# read time
-			try:
-				times.append(self.read_time(file))
-			except:
-				times.append(self.reference)
+			times.append(self.read_time(file))
+			print 'time is ', times[-1]
 			# compute data in subroutine
 			if showing == 'velocity_roms':
 				data = self.velocity_roms(file)
@@ -171,12 +169,19 @@ class gearth_anim():
 		nc_data.close()
 		return data
 
-	def read_time(self,datafile,ref=None):
+	def read_time(self,datafile):
 		nc_data = nc.Dataset(datafile,'r')
-		seconds_from_ref = nc_data.variables[self.timevar][0]
-		nc_data.close()
-		if ref is None:
+		try:
+			seconds_from_ref = int(nc_data.variables[self.timevar][0])
+		except:
+			seconds_from_ref = 0
+			print 'unable to read time from file', datafile
+		try:
+			ref_string = nc_data.variables[self.timevar].units.replace('seconds since ','')
+			ref = dt.datetime.strptime(ref_string,"%Y-%m-%d %H:%M:%S")
+		except:
 			ref = self.reference
+		nc_data.close()
 		time = ref + dt.timedelta(seconds=seconds_from_ref)
 		return time
 
