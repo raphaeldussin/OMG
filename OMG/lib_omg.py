@@ -10,12 +10,12 @@ from simplekml import (Kml, OverlayXY, ScreenXY, Units, RotationXY,
 
 class gearth_anim():
 
-	def __init__(self,gridfile,plotdir,model='ROMS'):
+	def __init__(self,gridfile,plotdir,model='ROMS',figsize=8):
 		self.gridfile = gridfile
 		self.reference = dt.datetime(1900,1,1,0,0)
 		self.maxdigit=6
 		self.dpi = 600
-		self.figure_size = 8 # *100 pixels
+		self.figure_size = figsize # default 8 *100 pixels
 		self.plotdir = plotdir
 		self.model = model
 		if self.model == 'ROMS':
