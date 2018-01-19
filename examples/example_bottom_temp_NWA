@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+
+from OMG import lib_omg as lomg
+import numpy as np
+import subprocess as sp
+
+def get_output(cmd):
+        ''' cmd is the string we want to execute in the shell
+        and have the output'''
+        out = sp.check_output(cmd,shell=True).replace('\n',' ').split()
+        return out
+
+nwa_gridfile='/Volumes/P1/ROMS-Inputs/NWA/Grid/NWA_grd.nc'
+nwa_datadir = '/Volumes/P10/ROMS/NWA/NWA-RD.HCSODA3R/'
+
+plotdir='/Volumes/P4/workdir/raphael/anims/'
+
+yearbeg=2015
+yearend=2015
+
+listfiles = []
+for year in np.arange(yearbeg,yearend+1):
+        avgfiles = get_output('ls ' + nwa_datadir + str(year) + ' | grep avg' )
+        for avgfile in avgfiles:
+                listfiles.append(nwa_datadir + str(year) + '/' + avgfile  )
+
+nwa = lomg.gearth_anim(nwa_gridfile,plotdir)
+nwa.create_animation(listfiles,'nwa_bottom_temp_2015.kmz',showing='bt_roms')

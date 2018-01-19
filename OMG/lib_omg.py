@@ -57,6 +57,8 @@ class gearth_anim():
 				data = self.bathy_roms(file)
 			elif showing == 'chl_roms':
 				data = self.chl_roms(file)
+			elif showing == 'bt_roms':
+				data = self.bt_roms(file)
 			else:
 				exit('no such kind of animation')
 
@@ -152,6 +154,13 @@ class gearth_anim():
 		# plot parameters
 		self.vmin = -1. ; self.vmax = 1.
 		self.colormap = cm.jet
+		return data
+
+	def bt_roms(self,file):
+		data = self.read_data(file,'temp',level=0)
+		# plot parameters
+		self.vmin = -2. ; self.vmax = 30.
+		self.colormap = cm.gist_ncar
 		return data
 
 	#--------------- core functions ---------------------------
